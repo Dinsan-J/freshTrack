@@ -3,7 +3,9 @@ import axios from 'axios';
 import { Package, Search, Tags, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.MODE === 'production' 
+  ? 'https://freshtrack-api-zprr.onrender.com/api' 
+  : 'http://localhost:5000/api';
 
 const Dashboard = () => {
   const [products, setProducts] = useState([]);

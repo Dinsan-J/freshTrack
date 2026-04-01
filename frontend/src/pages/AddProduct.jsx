@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { PlusCircle, Loader2, ArrowLeft, ArrowRight, Tag, Calendar, Hash, Image as ImageIcon } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.MODE === 'production' 
+  ? 'https://freshtrack-api-zprr.onrender.com/api' 
+  : 'http://localhost:5000/api';
 
 const AddProduct = () => {
   const location = useLocation();

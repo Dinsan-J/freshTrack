@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bell, AlertTriangle, X } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.MODE === 'production' 
+  ? 'https://freshtrack-api-zprr.onrender.com/api' 
+  : 'http://localhost:5000/api';
 
 const Notifications = () => {
   const [alerts, setAlerts] = useState([]);
