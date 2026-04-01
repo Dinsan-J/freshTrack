@@ -4,7 +4,7 @@ import axios from 'axios';
 import { PlusCircle, Loader2, ArrowLeft, ArrowRight, Tag, Calendar, Hash, Image as ImageIcon } from 'lucide-react';
 
 const API_URL = import.meta.env.MODE === 'production' 
-  ? 'https://freshtrack-api-zprr.onrender.com/api' 
+  ? 'https://freshtrack-api-sg33.onrender.com/api' 
   : 'http://localhost:5000/api';
 
 const AddProduct = () => {

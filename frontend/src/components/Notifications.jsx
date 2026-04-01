@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Bell, AlertTriangle, X } from 'lucide-react';
 
 const API_URL = import.meta.env.MODE === 'production' 
-  ? 'https://freshtrack-api-zprr.onrender.com/api' 
+  ? 'https://freshtrack-api-sg33.onrender.com/api' 
   : 'http://localhost:5000/api';
 
 const Notifications = () => {
