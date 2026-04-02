@@ -243,15 +243,6 @@ const BarcodeScanner = () => {
     }
   };
 
-  return (
-    <div className="max-w-md mx-auto animate-fade-in relative z-10 pt-4 px-2 pb-16">
-      <div className="text-center mb-8">
-        <div className="inline-flex bg-primary/10 p-4 rounded-3xl mb-4 shadow-sm ring-1 ring-primary/20">
-          <ScanBarcode className="w-8 h-8 text-primary" />
-        </div>
-        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Product Scanner</h2>
-        <p className="text-slate-500 mt-2 font-medium">Scan a barcode to manage expiry</p>
-      </div>
 
       <div className="bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[500px] relative border-[6px] border-white/10 ring-1 ring-white/20">
          {/* Container for scanner + overlays */}

@@ -202,7 +202,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="relative max-w-xl mx-auto md:mx-0 group">
+      <div className="relative max-w-xl lg:max-w-2xl mx-auto md:mx-0 group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
         <input 
           type="text" 
@@ -220,10 +220,10 @@ const Dashboard = () => {
           <p className="text-slate-500 mt-2">Start by adding a product or scanning a barcode.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <div key={product._id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 flex flex-col group">
-                <div className="p-6 pb-4 border-b border-slate-50 flex items-center justify-between gap-4">
+            <div key={product._id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 flex flex-col group h-full">
+                <div className="p-5 pb-4 border-b border-slate-50 flex items-center justify-between gap-4">
                    <div className="flex items-center gap-4 overflow-hidden">
                       <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500 p-2">
                         {product.image ? (
@@ -270,16 +270,16 @@ const Dashboard = () => {
                                       >+</button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 border-l border-slate-100 pl-3 ml-1">
+                                <div className="flex xl:flex-row flex-col items-center gap-2 border-l border-slate-100 pl-3 ml-1 shrink-0">
                                   <button 
                                      onClick={() => handleEditClick(batch, product)} 
-                                     className="flex items-center gap-1 px-3 py-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all text-[10px] font-black uppercase tracking-wider shadow-sm border border-primary/10"
+                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all text-[9.5px] font-black uppercase tracking-wider shadow-sm border border-primary/10 w-full xl:w-auto min-w-[70px]"
                                   >
                                       <Edit3 className="w-3.5 h-3.5" /> Edit
                                   </button>
                                   <button 
                                      onClick={() => deleteBatch(batch._id, product._id)} 
-                                     className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-wider shadow-sm border border-red-100"
+                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-[9.5px] font-black uppercase tracking-wider shadow-sm border border-red-100 w-full xl:w-auto min-w-[74px]"
                                   >
                                       <Trash2 className="w-3.5 h-3.5" /> Remove
                                   </button>
