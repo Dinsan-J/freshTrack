@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bell, AlertTriangle, X } from 'lucide-react';
+import { isBefore, startOfDay } from 'date-fns';
 
 const API_URL = import.meta.env.MODE === 'production' 
   ? 'https://freshtrack-api-sg33.onrender.com/api' 
@@ -94,7 +95,9 @@ const Notifications = () => {
 
             <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
               {alerts.map((batch, i) => {
-                const isExpired = new Date(batch.expiryDate) < new Date();
+                const expiry = new Date(batch.expiryDate);
+                const today = startOfDay(new Date());
+                const isExpired = isBefore(expiry, today);
                 return (
                   <div key={i} className={`p-4 rounded-2xl border-l-[6px] ${isExpired ? 'border-danger bg-red-50/50' : 'border-warning bg-orange-50/50'} relative overflow-hidden group`}>
                     <div className="absolute right-[-20px] top-[-20px] w-16 h-16 rounded-full blur-xl opacity-20 bg-current"></div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Package, Search, Tags, AlertCircle, CheckCircle, Clock, Trash2, Edit3, X, Save } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isBefore, startOfDay } from 'date-fns';
 
 const API_URL = import.meta.env.MODE === 'production' 
   ? 'https://freshtrack-api-sg33.onrender.com/api' 
@@ -116,20 +116,35 @@ const Dashboard = () => {
   };
 
   const calculateStatus = (batch) => {
-    const days = differenceInDays(new Date(batch.expiryDate), new Date());
-    if (days < 0) return { label: 'Expired', color: 'bg-danger text-white', ring: 'ring-danger/20' };
-    if (days <= 3) return { label: 'Expiring Soon', color: 'bg-warning text-white', ring: 'ring-warning/20' };
+    const expiry = new Date(batch.expiryDate);
+    const today = startOfDay(new Date());
+    const days = differenceInDays(expiry, today);
+
+    if (isBefore(expiry, today)) {
+        return { label: 'Expired', color: 'bg-danger text-white', ring: 'ring-danger/20' };
+    }
+    if (days <= 3) {
+        return { label: 'Expiring Soon', color: 'bg-warning text-white', ring: 'ring-warning/20' };
+    }
     return { label: 'Safe', color: 'bg-safe/10 text-safe', ring: 'ring-safe/20' };
   };
 
   const getSummary = () => {
     let expired = 0, near = 0, safe = 0;
+    const today = startOfDay(new Date());
+
     products.forEach(p => {
       p.batches?.forEach(b => {
-        const days = differenceInDays(new Date(b.expiryDate), new Date());
-        if (days < 0) expired += b.quantity;
-        else if (days <= 3) near += b.quantity;
-        else safe += b.quantity;
+        const expiry = new Date(b.expiryDate);
+        const days = differenceInDays(expiry, today);
+        
+        if (isBefore(expiry, today)) {
+          expired += b.quantity;
+        } else if (days <= 3) {
+          near += b.quantity;
+        } else {
+          safe += b.quantity;
+        }
       });
     });
     return { expired, near, safe };
