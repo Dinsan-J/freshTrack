@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import axios from 'axios';
 import { ScanBarcode, AlertCircle, Loader2, ArrowRight, RefreshCw, XCircle } from 'lucide-react';
 
@@ -89,13 +89,37 @@ const BarcodeScanner = () => {
     const readerElement = document.getElementById("reader");
     if (readerElement) readerElement.innerHTML = '';
 
-    const html5QrCode = new Html5Qrcode("reader");
+    const formatsToSupport = [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ];
+
+    const html5QrCode = new Html5Qrcode("reader", { formatsToSupport });
     scannerRef.current = html5QrCode;
     
+    // Improved scan box for both wide barcodes and square QR codes
+    const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
+        let minEdgePercentage = 0.7; 
+        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+        let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+        return {
+            width: qrboxSize * 1.2, // Slightly wider for 1D barcodes
+            height: qrboxSize * 0.8
+        };
+    };
+
     const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 180 },
+      fps: 20, // Faster detection
+      qrbox: qrboxFunction,
       aspectRatio: 1.0,
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      }
     };
 
     try {

@@ -88,6 +88,21 @@ const AddProduct = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {formData.image && (
+             <div className="flex justify-center mb-6">
+                <div className="relative group">
+                   <img 
+                     src={formData.image} 
+                     alt="Preview" 
+                     className="w-24 h-24 object-contain rounded-2xl bg-slate-50 p-2 border-2 border-slate-100 shadow-inner transition-transform group-hover:scale-105"
+                   />
+                   <div className="absolute -top-2 -right-2 bg-primary text-white p-1 rounded-full shadow-lg">
+                      <ImageIcon className="w-3 h-3" />
+                   </div>
+                </div>
+             </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
              <div className="space-y-1.5 col-span-1 md:col-span-2 relative group">
                 <label className="text-sm font-bold tracking-wide uppercase text-slate-500 ml-1">Barcode</label>
@@ -123,27 +138,15 @@ const AddProduct = () => {
 
              <div className="space-y-1.5 relative group">
                 <label className="text-sm font-bold tracking-wide uppercase text-slate-500 ml-1">Brand</label>
-                <input
-                  type="text"
-                  name="brand"
-                  value={formData.brand}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-slate-800"
-                  placeholder="Ex: Amul"
-                />
-             </div>
-
-             <div className="space-y-1.5 relative group">
-                <label className="text-sm font-bold tracking-wide uppercase text-slate-500 ml-1">Image URL</label>
                 <div className="relative">
-                   <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 transition-colors group-focus-within:text-primary" />
+                   <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 transition-colors group-focus-within:text-primary" />
                    <input
                      type="text"
-                     name="image"
-                     value={formData.image}
+                     name="brand"
+                     value={formData.brand}
                      onChange={handleChange}
                      className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-slate-800"
-                     placeholder="https://"
+                     placeholder="Ex: Amul"
                    />
                 </div>
              </div>
