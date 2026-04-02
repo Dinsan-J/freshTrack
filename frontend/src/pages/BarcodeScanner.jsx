@@ -13,17 +13,16 @@ const BarcodeScanner = () => {
   const [cameras, setCameras] = useState([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const scannerRef = useRef(null);
-  const terminalRef = useRef(false); // To prevent double init in React 18
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    // Only initialize once
-    if (terminalRef.current) return;
-    terminalRef.current = true;
+    isMounted.current = true;
 
     const initializeCameras = async () => {
       try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
+          if (!isMounted.current) return;
           setCameras(devices);
           // Auto start with back camera if possible
           const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
@@ -31,19 +30,31 @@ const BarcodeScanner = () => {
           setCurrentCameraIndex(bIdx !== -1 ? bIdx : 0);
           await startScanner(backCam.id);
         } else {
+          if (!isMounted.current) return;
           setError('No cameras found. Please check permissions.');
         }
       } catch (err) {
         console.error("Failed to get cameras", err);
-        setError('Camera access denied. Please allow camera permissions in your browser settings.');
+        if (isMounted.current) {
+          setError('Camera access denied. Please allow camera permissions in your browser settings.');
+        }
       }
     };
 
     initializeCameras();
 
     return () => {
-        // Safe cleanup
-        stopScanner();
+        isMounted.current = false;
+        // Immediate cleanup of library
+        if (scannerRef.current) {
+            if (scannerRef.current.isScanning) {
+                scannerRef.current.stop().then(() => {
+                    scannerRef.current.clear();
+                }).catch(e => console.error("Unmount stop failed", e));
+            } else {
+              scannerRef.current.clear();
+            }
+        }
     };
   }, []);
 
@@ -51,7 +62,8 @@ const BarcodeScanner = () => {
     if (scannerRef.current && scannerRef.current.isScanning) {
         try {
             await scannerRef.current.stop();
-            // Don't null scannerRef.current here, we might reuse it
+            scannerRef.current.clear();
+            if (isMounted.current) setIsStarted(false);
         } catch (e) {
             console.error("Stop error", e);
         }
@@ -59,14 +71,23 @@ const BarcodeScanner = () => {
   };
 
   const startScanner = async (cameraId) => {
+    if (!isMounted.current) return;
+    
     setError('');
     setLoading(false);
     setIsStarted(false);
 
-    // Stop existing if any
-    if (scannerRef.current && scannerRef.current.isScanning) {
-        await scannerRef.current.stop();
+    // Stop and clear existing if any
+    if (scannerRef.current) {
+        if (scannerRef.current.isScanning) {
+            await scannerRef.current.stop();
+        }
+        scannerRef.current.clear();
     }
+
+    // Ensure terminal element is empty
+    const readerElement = document.getElementById("reader");
+    if (readerElement) readerElement.innerHTML = '';
 
     const html5QrCode = new Html5Qrcode("reader");
     scannerRef.current = html5QrCode;
@@ -75,7 +96,6 @@ const BarcodeScanner = () => {
       fps: 10,
       qrbox: { width: 250, height: 180 },
       aspectRatio: 1.0,
-      // experimentalFeatures: { useBarCodeDetectorIfSupported: true }
     };
 
     try {
@@ -85,15 +105,17 @@ const BarcodeScanner = () => {
         onScanSuccess,
         onScanFailure
       );
-      setIsStarted(true);
+      if (isMounted.current) setIsStarted(true);
     } catch (err) {
       console.error("Start error", err);
-      // Fallback if ID-based start fails (sometimes happens on mobile)
-      try {
-          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
-          setIsStarted(true);
-      } catch (e2) {
-          setError('Could not start camera. Please refresh the page.');
+      // Fallback
+      if (isMounted.current) {
+          try {
+              await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+              setIsStarted(true);
+          } catch (e2) {
+              setError('Could not start camera. Please refresh the page.');
+          }
       }
     }
   };
@@ -108,11 +130,27 @@ const BarcodeScanner = () => {
   async function onScanSuccess(decodedText) {
     if (scannerRef.current && scannerRef.current.isScanning) {
         try {
+            // Stop library FIRST
             await scannerRef.current.stop();
-            setIsStarted(false);
-            fetchProductDetails(decodedText);
+            scannerRef.current.clear();
+            
+            if (isMounted.current) {
+                setIsStarted(false);
+                fetchProductDetails(decodedText);
+            }
         } catch (err) {
             console.error("Stop failed during success", err);
+            // Proceed anyway if it's already dead
+            if (isMounted.current) {
+                setIsStarted(false);
+                fetchProductDetails(decodedText);
+            }
+        }
+    } else {
+        // Fallback for cases where isScanning might be false but success triggered
+        if (isMounted.current) {
+            setIsStarted(false);
+            fetchProductDetails(decodedText);
         }
     }
   }
@@ -136,13 +174,15 @@ const BarcodeScanner = () => {
           image: data.product.image_url || ''
         };
       }
-      setProductData(pData);
+      if (isMounted.current) setProductData(pData);
     } catch (err) {
       console.error(err);
-      setError('Product not found in database.');
-      setProductData({ barcode });
+      if (isMounted.current) {
+          setError('Product not found in database.');
+          setProductData({ barcode });
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -157,7 +197,7 @@ const BarcodeScanner = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in relative z-10 pt-4 px-2">
+    <div className="max-w-md mx-auto animate-fade-in relative z-10 pt-4 px-2 pb-16">
       <div className="text-center mb-8">
         <div className="inline-flex bg-primary/10 p-4 rounded-3xl mb-4 shadow-sm ring-1 ring-primary/20">
           <ScanBarcode className="w-8 h-8 text-primary" />
@@ -167,39 +207,45 @@ const BarcodeScanner = () => {
       </div>
 
       <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-primary/10 border border-slate-100 overflow-hidden min-h-[400px]">
-         {/* ALWAYS KEEP READER IN DOM to prevent removeChild crashes */}
+         {/* Container for scanner + overlays */}
          <div className={`relative ${productData || loading ? 'hidden' : 'block'}`}>
-             <div id="reader" className="w-full aspect-square bg-black overflow-hidden relative">
+             <div className="relative aspect-square bg-slate-900 overflow-hidden">
+                {/* 
+                   DANGER: #reader must stay EMPTY for React. 
+                   html5-qrcode will manipulate its innerHTML.
+                */}
+                <div id="reader" className="w-full h-full"></div>
+
+                {/* React overlays SIT ON TOP of the reader div as siblings */}
                 {!isStarted && !error && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-900">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-900 z-10">
                         <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
-                        <p className="font-bold tracking-tight">Camera loading...</p>
+                        <p className="font-bold tracking-tight">Initializing Camera...</p>
                     </div>
                 )}
-             </div>
 
-             {/* UI Overlays */}
-             {isStarted && (
-               <>
-                <div className="absolute top-4 right-4 flex gap-2">
-                  {cameras.length > 1 && (
-                    <button onClick={switchCamera} className="p-3 bg-white/20 backdrop-blur-lg rounded-full text-white border border-white/30 hover:bg-white/40">
-                      <RefreshCw className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-64 h-48 border-2 border-primary/50 rounded-2xl relative">
-                        <div className="absolute inset-x-0 h-0.5 bg-primary/80 top-0 animate-[scan_2s_infinite]"></div>
-                        <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
-                        <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
-                        <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+                {isStarted && (
+                  <div className="absolute inset-0 z-10 pointer-events-none">
+                    <div className="absolute top-4 right-4 flex gap-2 pointer-events-auto">
+                      {cameras.length > 1 && (
+                        <button onClick={switchCamera} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/40">
+                          <RefreshCw className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
-                </div>
-               </>
-             )}
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-48 border-2 border-primary/50 rounded-2xl relative">
+                            <div className="absolute inset-x-0 h-0.5 bg-primary/80 top-0 animate-[scan_2s_infinite]"></div>
+                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
+                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+                        </div>
+                    </div>
+                  </div>
+                )}
+             </div>
          </div>
 
          {loading && (
