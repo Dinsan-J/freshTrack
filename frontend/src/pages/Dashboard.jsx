@@ -255,15 +255,18 @@ const Dashboard = () => {
                                       >+</button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[10px] uppercase font-bold px-3 py-1.5 rounded-full ring-1 ${status.color} ${status.ring}`}>
-                                    {status.label}
-                                  </span>
-                                  <button onClick={() => handleEditClick(batch, product)} className="opacity-0 group-hover/batch:opacity-100 p-1.5 text-slate-400 hover:text-primary transition-all">
-                                      <Edit3 className="w-4 h-4" />
+                                <div className="flex items-center gap-2 border-l border-slate-100 pl-3 ml-1">
+                                  <button 
+                                     onClick={() => handleEditClick(batch, product)} 
+                                     className="flex items-center gap-1 px-3 py-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all text-[10px] font-black uppercase tracking-wider shadow-sm border border-primary/10"
+                                  >
+                                      <Edit3 className="w-3.5 h-3.5" /> Edit
                                   </button>
-                                  <button onClick={() => deleteBatch(batch._id, product._id)} className="opacity-0 group-hover/batch:opacity-100 p-1.5 text-slate-300 hover:text-red-500 transition-all">
-                                      <Trash2 className="w-4 h-4" />
+                                  <button 
+                                     onClick={() => deleteBatch(batch._id, product._id)} 
+                                     className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-wider shadow-sm border border-red-100"
+                                  >
+                                      <Trash2 className="w-3.5 h-3.5" /> Remove
                                   </button>
                                 </div>
                              </div>

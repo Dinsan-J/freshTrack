@@ -83,8 +83,10 @@ const AddProduct = () => {
       <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-6 md:p-8 border border-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-indigo-500"></div>
         {success && (
-          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm px-6 py-4 bg-emerald-500 text-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce font-black tracking-wide border border-white/20">
-            <CheckCircle className="w-6 h-6" />
+          <div className="fixed top-28 left-1/2 -translate-x-1/2 z-[100] w-[85%] max-w-sm px-6 py-4 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-center gap-3 animate-bounce font-black tracking-wide border border-white/10">
+            <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                <CheckCircle className="w-5 h-5 text-white" />
+            </div>
             {success}
           </div>
         )}

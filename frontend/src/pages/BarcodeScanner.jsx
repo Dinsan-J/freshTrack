@@ -253,15 +253,15 @@ const BarcodeScanner = () => {
         <p className="text-slate-500 mt-2 font-medium">Scan a barcode to manage expiry</p>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-primary/10 border border-slate-100 overflow-hidden min-h-[400px]">
+      <div className="bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[500px] relative border-[6px] border-white/10 ring-1 ring-white/20">
          {/* Container for scanner + overlays */}
-         <div className={`relative ${productData || loading ? 'hidden' : 'block'}`}>
-             <div className="relative aspect-square bg-slate-900 overflow-hidden">
+         <div className={`relative w-full h-full ${productData || loading ? 'hidden' : 'block'}`}>
+             <div className="relative w-full h-[500px] md:h-[600px] bg-slate-900 overflow-hidden">
                 {/* 
                    DANGER: #reader must stay EMPTY for React. 
                    html5-qrcode will manipulate its innerHTML.
                 */}
-                <div id="reader" className="w-full h-full"></div>
+                <div id="reader" className="w-full h-full scale-[1.05]"></div>
 
                 {/* React overlays SIT ON TOP of the reader div as siblings */}
                 {!isStarted && !error && (
@@ -282,15 +282,17 @@ const BarcodeScanner = () => {
                     </div>
 
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-72 h-56 border border-white/20 rounded-[2rem] relative overflow-hidden">
-                            <div className="absolute inset-0 bg-primary/10 animate-pulse"></div>
-                            <div className="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent top-0 animate-[scan_2.5s_infinite]"></div>
+                        <div className="w-[85%] h-[60%] border border-white/20 rounded-[2rem] relative overflow-hidden backdrop-blur-[1px]">
+                            <div className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent top-0 animate-[scan_2s_infinite]"></div>
                             
-                            {/* Decorative corners */}
-                            <div className="absolute top-0 left-0 w-8 h-8 border-t-[5px] border-l-[5px] border-primary rounded-tl-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
-                            <div className="absolute top-0 right-0 w-8 h-8 border-t-[5px] border-r-[5px] border-primary rounded-tr-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
-                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[5px] border-l-[5px] border-primary rounded-bl-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
-                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[5px] border-r-[5px] border-primary rounded-br-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
+                            {/* Decorative framing corners */}
+                            <div className="absolute top-0 left-0 w-10 h-10 border-t-[6px] border-l-[6px] border-primary rounded-tl-3xl shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)]"></div>
+                            <div className="absolute top-0 right-0 w-10 h-10 border-t-[6px] border-r-[6px] border-primary rounded-tr-3xl shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)]"></div>
+                            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-[6px] border-l-[6px] border-primary rounded-bl-3xl shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)]"></div>
+                            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-[6px] border-r-[6px] border-primary rounded-br-3xl shadow-[0_0_20px_rgba(var(--primary-rgb),0.6)]"></div>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                                <ScanBarcode className="w-16 h-16 text-white/20" />
+                            </div>
                         </div>
                     </div>
                   </div>
