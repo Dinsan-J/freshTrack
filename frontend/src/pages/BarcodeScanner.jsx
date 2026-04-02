@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
-import { ScanBarcode, AlertCircle, Loader2, ArrowRight, Camera, RefreshCw } from 'lucide-react';
+import { ScanBarcode, AlertCircle, Loader2, ArrowRight, RefreshCw, XCircle } from 'lucide-react';
 
 const BarcodeScanner = () => {
   const navigate = useNavigate();
@@ -13,79 +13,117 @@ const BarcodeScanner = () => {
   const [cameras, setCameras] = useState([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const scannerRef = useRef(null);
+  const terminalRef = useRef(false); // To prevent double init in React 18
 
   useEffect(() => {
-    // 1. Initial listing of cameras
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length > 0) {
-        setCameras(devices);
-        startScanner(devices[0].id);
-      } else {
-        setError('No cameras found on your device.');
+    // Only initialize once
+    if (terminalRef.current) return;
+    terminalRef.current = true;
+
+    const initializeCameras = async () => {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setCameras(devices);
+          // Auto start with back camera if possible
+          const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
+          const bIdx = devices.indexOf(backCam);
+          setCurrentCameraIndex(bIdx !== -1 ? bIdx : 0);
+          await startScanner(backCam.id);
+        } else {
+          setError('No cameras found. Please check permissions.');
+        }
+      } catch (err) {
+        console.error("Failed to get cameras", err);
+        setError('Camera access denied. Please allow camera permissions in your browser settings.');
       }
-    }).catch(err => {
-      console.error("Failed to get cameras", err);
-      setError('Camera permission denied or not available. Please ensure your browser has camera access.');
-    });
+    };
+
+    initializeCameras();
 
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(err => console.error("Stopping failed", err));
-      }
+        // Safe cleanup
+        stopScanner();
     };
   }, []);
 
-  const startScanner = async (cameraId) => {
+  const stopScanner = async () => {
     if (scannerRef.current && scannerRef.current.isScanning) {
-      await scannerRef.current.stop();
+        try {
+            await scannerRef.current.stop();
+            // Don't null scannerRef.current here, we might reuse it
+        } catch (e) {
+            console.error("Stop error", e);
+        }
+    }
+  };
+
+  const startScanner = async (cameraId) => {
+    setError('');
+    setLoading(false);
+    setIsStarted(false);
+
+    // Stop existing if any
+    if (scannerRef.current && scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
     }
 
     const html5QrCode = new Html5Qrcode("reader");
     scannerRef.current = html5QrCode;
     
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 180 },
+      aspectRatio: 1.0,
+      // experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    };
+
     try {
       await html5QrCode.start(
         cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 180 },
-          aspectRatio: 1.0
-        },
+        config,
         onScanSuccess,
         onScanFailure
       );
       setIsStarted(true);
-      setError('');
     } catch (err) {
-      console.error(err);
-      setError('Could not start camera. Make sure it is not used by another application.');
-      setIsStarted(false);
+      console.error("Start error", err);
+      // Fallback if ID-based start fails (sometimes happens on mobile)
+      try {
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+          setIsStarted(true);
+      } catch (e2) {
+          setError('Could not start camera. Please refresh the page.');
+      }
     }
   };
 
-  const switchCamera = () => {
+  const switchCamera = async () => {
     if (cameras.length < 2) return;
     const nextIndex = (currentCameraIndex + 1) % cameras.length;
     setCurrentCameraIndex(nextIndex);
-    startScanner(cameras[nextIndex].id);
+    await startScanner(cameras[nextIndex].id);
   };
 
-  function onScanSuccess(decodedText) {
-    if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
+  async function onScanSuccess(decodedText) {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+        try {
+            await scannerRef.current.stop();
             setIsStarted(false);
             fetchProductDetails(decodedText);
-        }).catch(err => console.error("Stop failed", err));
+        } catch (err) {
+            console.error("Stop failed during success", err);
+        }
     }
   }
 
   function onScanFailure(error) {
-    // Silently ignore regular scanning failures (when barcode is not in frame)
+    // Noise
   }
 
   const fetchProductDetails = async (barcode) => {
     setLoading(true);
-    setError('');
+    setProductData(null);
     try {
       const { data } = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       
@@ -99,150 +137,131 @@ const BarcodeScanner = () => {
         };
       }
       setProductData(pData);
-      setLoading(false);
     } catch (err) {
       console.error(err);
-      setError('Product not found in database, but you can still add it manually.');
+      setError('Product not found in database.');
       setProductData({ barcode });
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleContinue = () => {
-    navigate('/add', { state: { productData } });
-  };
-
-  const retryScan = () => {
+  const retryScan = async () => {
     setProductData(null);
+    setError('');
     if (cameras.length > 0) {
-        startScanner(cameras[currentCameraIndex].id);
+        await startScanner(cameras[currentCameraIndex].id);
+    } else {
+        window.location.reload();
     }
   };
 
   return (
     <div className="max-w-md mx-auto animate-fade-in relative z-10 pt-4 px-2">
       <div className="text-center mb-8">
-        <div className="inline-flex bg-primary/10 p-4 rounded-[1.5rem] mb-4 shadow-inner ring-1 ring-primary/20">
+        <div className="inline-flex bg-primary/10 p-4 rounded-3xl mb-4 shadow-sm ring-1 ring-primary/20">
           <ScanBarcode className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Scanner</h2>
-        <p className="text-slate-500 mt-2 font-medium">Camera scan only mode active</p>
+        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Product Scanner</h2>
+        <p className="text-slate-500 mt-2 font-medium">Scan a barcode to manage expiry</p>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-primary/10 border border-slate-100 overflow-hidden relative">
-         {!productData && !loading && (
-           <div className="relative">
-             <div id="reader" className="w-full aspect-square bg-slate-900 overflow-hidden relative">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-primary/10 border border-slate-100 overflow-hidden min-h-[400px]">
+         {/* ALWAYS KEEP READER IN DOM to prevent removeChild crashes */}
+         <div className={`relative ${productData || loading ? 'hidden' : 'block'}`}>
+             <div id="reader" className="w-full aspect-square bg-black overflow-hidden relative">
                 {!isStarted && !error && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-8 text-center">
-                        <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary" />
-                        <p className="font-bold">Initializing camera...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-900">
+                        <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+                        <p className="font-bold tracking-tight">Camera loading...</p>
                     </div>
                 )}
              </div>
-             
-             {isStarted && (
-               <div className="absolute top-4 right-4 flex gap-2">
-                 {cameras.length > 1 && (
-                    <button 
-                      onClick={switchCamera}
-                      className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all"
-                      title="Switch Camera"
-                    >
-                        <RefreshCw className="w-5 h-5" />
-                    </button>
-                 )}
-               </div>
-             )}
 
-             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-64 h-48 border-2 border-primary/50 rounded-2xl relative overflow-hidden">
-                    <div className="absolute inset-x-0 h-0.5 bg-primary/80 top-0 animate-[scan_2s_infinite]"></div>
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-primary rounded-tl-lg"></div>
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-primary rounded-tr-lg"></div>
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-primary rounded-bl-lg"></div>
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-primary rounded-br-lg"></div>
+             {/* UI Overlays */}
+             {isStarted && (
+               <>
+                <div className="absolute top-4 right-4 flex gap-2">
+                  {cameras.length > 1 && (
+                    <button onClick={switchCamera} className="p-3 bg-white/20 backdrop-blur-lg rounded-full text-white border border-white/30 hover:bg-white/40">
+                      <RefreshCw className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-             </div>
-           </div>
-         )}
+
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-64 h-48 border-2 border-primary/50 rounded-2xl relative">
+                        <div className="absolute inset-x-0 h-0.5 bg-primary/80 top-0 animate-[scan_2s_infinite]"></div>
+                        <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
+                        <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+                    </div>
+                </div>
+               </>
+             )}
+         </div>
 
          {loading && (
-           <div className="flex flex-col items-center justify-center p-16 bg-slate-50 min-h-[300px]">
-             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+           <div className="p-16 flex flex-col items-center justify-center min-h-[400px] animate-pulse">
+             <div className="w-24 h-24 bg-primary/5 rounded-[2.5rem] flex items-center justify-center mb-8 ring-1 ring-primary/10">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
              </div>
-             <p className="text-slate-800 text-xl font-black tracking-tight">Analyzing...</p>
-             <p className="text-sm text-slate-500 mt-2 font-medium">Fetching product data</p>
+             <p className="text-xl font-black text-slate-800 tracking-tight">Analyzing Code...</p>
+             <p className="text-sm text-slate-400 mt-2 font-bold uppercase tracking-widest">Open Food Facts API</p>
            </div>
          )}
 
          {productData && !loading && (
-           <div className="p-8 bg-white text-center animate-slide-up">
-              <div className="relative inline-block mb-6">
+           <div className="p-8 text-center animate-slide-up">
+              <div className="relative inline-block mb-8">
                 {productData.image ? (
-                    <img src={productData.image} alt="Product" className="w-40 h-40 object-contain mx-auto bg-slate-50 p-4 rounded-[2rem] shadow-sm border border-slate-100" />
+                    <img src={productData.image} alt="Product" className="w-40 h-40 object-contain mx-auto bg-slate-50 p-4 rounded-[2.5rem] shadow-sm border border-slate-100" />
                 ) : (
-                    <div className="w-32 h-32 bg-primary/5 rounded-[2rem] mx-auto flex items-center justify-center ring-1 ring-primary/10">
+                    <div className="w-32 h-32 bg-primary/5 rounded-[2rem] mx-auto flex items-center justify-center">
                         <ScanBarcode className="w-12 h-12 text-primary" />
                     </div>
                 )}
-                <div className="absolute -bottom-2 -right-2 bg-green-500 p-2 rounded-full text-white shadow-lg ring-4 ring-white">
-                    <RefreshCw className="w-4 h-4" onClick={retryScan} cursor="pointer" />
-                </div>
+                <button onClick={retryScan} className="absolute -bottom-2 -right-2 bg-slate-800 p-2.5 rounded-full text-white shadow-lg ring-4 ring-white hover:bg-primary transition-colors">
+                    <RefreshCw className="w-4 h-4" />
+                </button>
               </div>
 
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-1">{productData.name || 'Unknown Product'}</h3>
-              <p className="text-slate-500 font-bold mb-4 uppercase tracking-wider text-xs">{productData.brand || 'Generic'}</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mb-2">{productData.name || 'Unknown Item'}</h3>
+              <p className="text-slate-400 font-black mb-6 uppercase tracking-widest text-[10px]">{productData.brand || 'No Brand'}</p>
               
-              <div className="inline-flex items-center gap-3 bg-slate-100 px-5 py-2 rounded-2xl mb-8">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Barcode</span>
-                 <span className="text-sm font-bold text-slate-700 tracking-wider">{productData.barcode}</span>
+              <div className="bg-slate-50 px-6 py-3 rounded-2xl mb-10 inline-flex items-center gap-4">
+                 <span className="text-[10px] font-black text-slate-400 uppercase">Track ID</span>
+                 <span className="text-sm font-mono font-black text-slate-800 tracking-tighter">{productData.barcode}</span>
               </div>
               
               <button 
-                onClick={handleContinue}
-                className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white font-black py-5 rounded-3xl hover:bg-primary transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10 group"
+                onClick={() => navigate('/add', { state: { productData } })}
+                className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.75rem] shadow-xl shadow-slate-900/10 hover:bg-primary hover:-translate-y-1 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
               >
-                Set Expiry Date
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-              
-              <button 
-                onClick={retryScan}
-                className="mt-4 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                Scan again
+                Continue to Batch Info <ArrowRight className="w-5 h-5" />
               </button>
            </div>
          )}
+
+         {error && !loading && !productData && (
+            <div className="p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-6">
+                    <XCircle className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-slate-800 mb-2">Scan Failed</h3>
+                <p className="text-slate-500 font-medium mb-8 leading-relaxed max-w-[200px] mx-auto">{error}</p>
+                <button onClick={retryScan} className="px-8 py-3 bg-slate-100 text-slate-800 font-black rounded-xl hover:bg-slate-200 transition-colors">Try Again</button>
+            </div>
+         )}
       </div>
-      
-      {error && !loading && (
-        <div className="mt-6 p-5 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4 shadow-sm animate-shake">
-            <div className="p-2 bg-red-500 rounded-xl text-white">
-                <AlertCircle className="w-5 h-5" />
-            </div>
-            <div className="text-left">
-                <p className="text-sm font-black text-red-900 uppercase tracking-tighter">System Error</p>
-                <p className="text-sm text-red-600 font-medium leading-relaxed">{error}</p>
-            </div>
-        </div>
-      )}
 
       <style>{`
         @keyframes scan {
-          0% { top: 0; }
+          0%, 100% { top: 0; opacity: 0; }
+          10%, 90% { opacity: 1; }
           50% { top: 100%; }
-          100% { top: 0; }
         }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-        .animate-shake { animation: shake 0.5s ease-in-out; }
-        
         #reader video {
             width: 100% !important;
             height: 100% !important;
