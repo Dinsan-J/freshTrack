@@ -163,54 +163,58 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 animate-fade-in pb-12 pt-4">
+      {/* Visual Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 pb-8">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Your Inventory</h2>
-          <p className="text-slate-500 mt-1 font-medium">Manage your products and their expiry dates</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider mb-3">
+             <Clock className="w-3 h-3" /> Real-time Inventory
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">Your Inventory</h2>
+          <p className="text-slate-500 mt-2 font-medium max-w-md">Manage your products and expiry dates with automated status tracking.</p>
         </div>
-      </header>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-xl transition-all duration-300">
-          <div className="w-14 h-14 rounded-2xl bg-safe/10 flex items-center justify-center text-safe">
-            <CheckCircle className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Safe Items</p>
-            <p className="text-3xl font-extrabold text-slate-800">{summary.safe}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-xl transition-all duration-300">
-          <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center text-warning">
-             <Clock className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Expiring Soon</p>
-            <p className="text-3xl font-extrabold text-slate-800">{summary.near}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-xl transition-all duration-300">
-           <div className="w-14 h-14 rounded-2xl bg-danger/10 flex items-center justify-center text-danger">
-              <AlertCircle className="w-7 h-7" />
-           </div>
-           <div>
-             <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Expired Items</p>
-             <p className="text-3xl font-extrabold text-slate-800">{summary.expired}</p>
-           </div>
+        
+        <div className="relative w-full md:max-w-xs group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Quick search..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-800 placeholder-slate-400 shadow-sm"
+          />
         </div>
       </div>
 
-      <div className="relative max-w-xl lg:max-w-2xl mx-auto md:mx-0 group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
-        <input 
-          type="text" 
-          placeholder="Search products by name..." 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 rounded-[1.5rem] bg-white border border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-slate-800 placeholder-slate-400 shadow-sm"
-        />
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5 hover:shadow-xl hover:shadow-safe/5 transition-all duration-300 group/card">
+          <div className="w-16 h-16 rounded-2xl bg-safe/10 flex items-center justify-center text-safe group-hover/card:scale-110 transition-transform">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">Safe Items</p>
+            <p className="text-3xl font-black text-slate-800 tracking-tighter">{summary.safe}</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5 hover:shadow-xl hover:shadow-warning/5 transition-all duration-300 group/card">
+          <div className="w-16 h-16 rounded-2xl bg-warning/10 flex items-center justify-center text-warning group-hover/card:scale-110 transition-transform">
+             <Clock className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">Expiring Soon</p>
+            <p className="text-3xl font-black text-slate-800 tracking-tighter">{summary.near}</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5 hover:shadow-xl hover:shadow-danger/5 transition-all duration-300 group/card sm:col-span-2 lg:col-span-1">
+           <div className="w-16 h-16 rounded-2xl bg-danger/10 flex items-center justify-center text-danger group-hover/card:scale-110 transition-transform">
+              <AlertCircle className="w-8 h-8" />
+           </div>
+           <div>
+             <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">Expired Items</p>
+             <p className="text-3xl font-black text-slate-800 tracking-tighter">{summary.expired}</p>
+           </div>
+        </div>
       </div>
 
       {filteredProducts.length === 0 ? (
@@ -220,16 +224,16 @@ const Dashboard = () => {
           <p className="text-slate-500 mt-2">Start by adding a product or scanning a barcode.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 group/grid">
           {filteredProducts.map((product) => (
             <div key={product._id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 flex flex-col group h-full">
                 <div className="p-5 pb-4 border-b border-slate-50 flex items-center justify-between gap-4">
                    <div className="flex items-center gap-4 overflow-hidden">
-                      <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500 p-2">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 p-2 shadow-inner">
                         {product.image ? (
                            <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                         ) : (
-                           <Package className="w-8 h-8 text-slate-400" />
+                           <Package className="w-8 h-8 text-slate-300" />
                         )}
                       </div>
                       <div>
@@ -270,16 +274,16 @@ const Dashboard = () => {
                                       >+</button>
                                   </div>
                                 </div>
-                                <div className="flex xl:flex-row flex-col items-center gap-2 border-l border-slate-100 pl-3 ml-1 shrink-0">
+                                <div className="flex lg:flex-row flex-col items-center gap-2 border-l border-slate-100 pl-3 ml-1 shrink-0">
                                   <button 
                                      onClick={() => handleEditClick(batch, product)} 
-                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all text-[9.5px] font-black uppercase tracking-wider shadow-sm border border-primary/10 w-full xl:w-auto min-w-[70px]"
+                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider shadow-sm border border-primary/10 w-full lg:w-auto min-w-[64px]"
                                   >
                                       <Edit3 className="w-3.5 h-3.5" /> Edit
                                   </button>
                                   <button 
                                      onClick={() => deleteBatch(batch._id, product._id)} 
-                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-[9.5px] font-black uppercase tracking-wider shadow-sm border border-red-100 w-full xl:w-auto min-w-[74px]"
+                                     className="flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-wider shadow-sm border border-red-100 w-full lg:w-auto min-w-[70px]"
                                   >
                                       <Trash2 className="w-3.5 h-3.5" /> Remove
                                   </button>

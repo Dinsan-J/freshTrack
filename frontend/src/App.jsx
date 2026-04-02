@@ -11,7 +11,7 @@ function App() {
       <div className="min-h-screen pb-20 md:pb-0 font-sans relative">
         <Navbar />
         <Notifications />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 min-h-[calc(100vh-80px)]">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28 md:pt-32 min-h-[calc(100vh-80px)]">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/scan" element={<BarcodeScanner />} />

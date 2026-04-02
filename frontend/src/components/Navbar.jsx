@@ -13,17 +13,17 @@ const Navbar = () => {
   return (
     <>
       {/* Desktop Header */}
-      <nav className="hidden md:flex fixed top-0 w-full z-50 glass px-8 py-4 items-center justify-between transition-all duration-300">
-        <div className="flex items-center gap-3">
+      <nav className="hidden md:flex fixed top-0 w-full z-50 glass px-4 lg:px-8 py-4 items-center justify-between transition-all duration-300 border-b border-white/20">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
             <ScanLine className="text-white w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-primary">
+          <h1 className="text-xl lg:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-primary tracking-tight">
             FreshTrack
           </h1>
         </div>
         
-        <div className="flex gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-white/40">
+        <div className="flex gap-1 lg:gap-2 bg-slate-100/50 p-1 rounded-2xl border border-white/40">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -31,25 +31,29 @@ const Navbar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                className={`flex items-center gap-2 px-3 lg:px-5 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                   isActive 
                     ? 'bg-white text-primary shadow-sm shadow-slate-200/50 scale-105' 
                     : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
-                {item.label}
+                <span className="hidden sm:inline">{item.label}</span>
+                {isActive && <span className="sm:hidden">{item.label}</span>}
               </Link>
             )
           })}
         </div>
       </nav>
 
-      {/* Mobile Top Header (Just for branding on mobile) */}
-      <div className="md:hidden fixed top-0 w-full z-40 glass px-5 py-4 flex items-center justify-center border-b border-white/20">
-         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-primary flex items-center gap-2">
-            <ScanLine className="text-primary w-5 h-5" /> FreshTrack
-         </h1>
+      {/* Mobile Top Header */}
+      <div className="md:hidden fixed top-0 w-full z-40 glass px-5 py-3.5 flex items-center justify-between border-b border-slate-200/50">
+         <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-primary/20">
+               <ScanLine className="text-white w-4.5 h-4.5" />
+            </div>
+            <h1 className="text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-primary">FreshTrack</h1>
+         </div>
       </div>
 
       {/* Mobile Bottom Nav */}
