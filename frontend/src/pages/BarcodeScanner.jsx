@@ -187,8 +187,22 @@ const BarcodeScanner = () => {
     setLoading(true);
     setProductData(null);
     try {
-      const { data } = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      // 1. Try Food Facts
+      let response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      let data = response.data;
       
+      // 2. Try Beauty Facts if not found
+      if (data.status !== 1) {
+        response = await axios.get(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
+        data = response.data;
+      }
+
+      // 3. Try Pet Food Facts if still not found
+      if (data.status !== 1) {
+          response = await axios.get(`https://world.openpetfoodfacts.org/api/v0/product/${barcode}.json`);
+          data = response.data;
+      }
+
       let pData = { barcode };
       if (data.status === 1 && data.product) {
         pData = {
@@ -202,7 +216,7 @@ const BarcodeScanner = () => {
     } catch (err) {
       console.error(err);
       if (isMounted.current) {
-          setError('Product not found in database.');
+          setError('Product not found in our database, but you can still add it manually.');
           setProductData({ barcode });
       }
     } finally {

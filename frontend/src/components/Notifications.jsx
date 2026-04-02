@@ -14,9 +14,16 @@ const Notifications = () => {
   useEffect(() => {
     checkExpiry();
     requestPermission();
+
+    const handleUpdate = () => checkExpiry();
+    window.addEventListener('inventoryUpdated', handleUpdate);
+
     // Optional: poll every hour
     const interval = setInterval(checkExpiry, 3600000);
-    return () => clearInterval(interval);
+    return () => {
+        clearInterval(interval);
+        window.removeEventListener('inventoryUpdated', handleUpdate);
+    };
   }, []);
 
   const requestPermission = async () => {

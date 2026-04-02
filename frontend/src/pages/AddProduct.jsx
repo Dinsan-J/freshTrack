@@ -55,6 +55,7 @@ const AddProduct = () => {
       });
 
       setSuccess('Product batch added successfully!');
+      window.dispatchEvent(new CustomEvent('inventoryUpdated'));
       setTimeout(() => navigate('/'), 1500);
     } catch (error) {
       console.error('Error saving', error);

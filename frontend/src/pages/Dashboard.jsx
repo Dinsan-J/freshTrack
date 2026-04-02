@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Package, Search, Tags, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Package, Search, Tags, AlertCircle, CheckCircle, Clock, Trash2, Edit3, X, Save } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 
 const API_URL = import.meta.env.MODE === 'production' 
@@ -24,6 +24,53 @@ const Dashboard = () => {
       console.error('Error fetching products', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteProduct = async (id) => {
+    if (!window.confirm('Delete this product and all its batches?')) return;
+    try {
+      await axios.delete(`${API_URL}/products/${id}`);
+      setProducts(products.filter(p => p._id !== id));
+      // Notify parent/global if needed
+      window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+    } catch (err) {
+      alert('Delete failed');
+    }
+  };
+
+  const deleteBatch = async (batchId, productId) => {
+      if (!window.confirm('Remove this batch?')) return;
+      try {
+          await axios.delete(`${API_URL}/batches/${batchId}`);
+          setProducts(products.map(p => {
+              if (p._id === productId) {
+                  return { ...p, batches: p.batches.filter(b => b._id !== batchId) };
+              }
+              return p;
+          }));
+          window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+      } catch (err) {
+          alert('Delete failed');
+      }
+  };
+
+  const updateBatchQuantity = async (batchId, productId, newQty) => {
+    if (newQty < 1) return;
+    try {
+        await axios.put(`${API_URL}/batches/${batchId}`, { quantity: newQty });
+        setProducts(products.map(p => {
+            if (p._id === productId) {
+                return { 
+                    ...p, 
+                    batches: p.batches.map(b => b._id === batchId ? { ...b, quantity: newQty } : b) 
+                };
+            }
+            return p;
+        }));
+        window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+    } catch (err) {
+        alert('Update failed');
     }
   };
 
@@ -120,49 +167,69 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredProducts.map((product) => (
             <div key={product._id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 flex flex-col group">
-               <div className="p-6 pb-4 border-b border-slate-50 flex items-center gap-4">
-                  <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500 p-2">
-                    {product.image ? (
-                       <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
-                    ) : (
-                       <Package className="w-8 h-8 text-slate-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-lg text-slate-800 leading-tight mb-1 group-hover:text-primary transition-colors line-clamp-2">{product.name}</h3>
-                    {product.brand && (
-                      <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 line-clamp-1">
-                        <Tags className="w-3 h-3" /> {product.brand}
-                      </p>
-                    )}
-                  </div>
-               </div>
+                <div className="p-6 pb-4 border-b border-slate-50 flex items-center justify-between gap-4">
+                   <div className="flex items-center gap-4 overflow-hidden">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500 p-2">
+                        {product.image ? (
+                           <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
+                        ) : (
+                           <Package className="w-8 h-8 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-lg text-slate-800 leading-tight mb-1 group-hover:text-primary transition-colors line-clamp-2">{product.name}</h3>
+                        {product.brand && (
+                          <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 line-clamp-1">
+                            <Tags className="w-3 h-3" /> {product.brand}
+                          </p>
+                        )}
+                      </div>
+                   </div>
+                   <button onClick={() => deleteProduct(product._id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all self-start">
+                      <Trash2 className="w-5 h-5" />
+                   </button>
+                </div>
 
-               <div className="p-6 bg-slate-50/50 flex-grow">
-                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Inventory Batches</h4>
-                 {product.batches && product.batches.length > 0 ? (
-                    <div className="space-y-2.5">
-                      {product.batches
-                        .sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate))
-                        .map(batch => {
-                          const status = calculateStatus(batch);
-                          return (
-                            <div key={batch._id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 shadow-sm ring-1 ring-inset ring-transparent hover:ring-slate-200 transition-all">
-                               <div>
-                                 <p className="text-sm font-bold text-slate-700">{format(new Date(batch.expiryDate), 'MMM dd, yyyy')}</p>
-                                 <p className="text-xs text-slate-500 font-medium mt-0.5">Qty: {batch.quantity}</p>
-                               </div>
-                               <span className={`text-[10px] uppercase font-bold px-3 py-1.5 rounded-full ring-1 ${status.color} ${status.ring}`}>
-                                 {status.label}
-                               </span>
-                            </div>
-                          );
-                      })}
-                    </div>
-                 ) : (
-                   <p className="text-sm text-slate-500 italic">No batches available.</p>
-                 )}
-               </div>
+                <div className="p-6 bg-slate-50/50 flex-grow">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Inventory Batches</h4>
+                  {product.batches && product.batches.length > 0 ? (
+                     <div className="space-y-2.5">
+                       {product.batches
+                         .sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate))
+                         .map(batch => {
+                           const status = calculateStatus(batch);
+                           return (
+                             <div key={batch._id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 shadow-sm ring-1 ring-inset ring-transparent hover:ring-slate-200 transition-all group/batch">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-700">{format(new Date(batch.expiryDate), 'MMM dd, yyyy')}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                      <button 
+                                        onClick={() => updateBatchQuantity(batch._id, product._id, batch.quantity - 1)}
+                                        className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded text-slate-500 hover:bg-slate-200"
+                                      >-</button>
+                                      <span className="text-xs font-black text-slate-800 w-4 text-center">{batch.quantity}</span>
+                                      <button 
+                                        onClick={() => updateBatchQuantity(batch._id, product._id, batch.quantity + 1)}
+                                        className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded text-slate-500 hover:bg-slate-200"
+                                      >+</button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-[10px] uppercase font-bold px-3 py-1.5 rounded-full ring-1 ${status.color} ${status.ring}`}>
+                                    {status.label}
+                                  </span>
+                                  <button onClick={() => deleteBatch(batch._id, product._id)} className="opacity-0 group-hover/batch:opacity-100 p-1.5 text-slate-300 hover:text-red-500 transition-all">
+                                      <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                             </div>
+                           );
+                       })}
+                     </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">No batches available.</p>
+                  )}
+                </div>
             </div>
           ))}
         </div>
