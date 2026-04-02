@@ -96,6 +96,8 @@ const BarcodeScanner = () => {
       Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,
       Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.RSS_14,
       Html5QrcodeSupportedFormats.QR_CODE
     ];
 
@@ -114,11 +116,16 @@ const BarcodeScanner = () => {
     };
 
     const config = {
-      fps: 20, // Faster detection
+      fps: 30, // Faster detection
       qrbox: qrboxFunction,
       aspectRatio: 1.0,
       experimentalFeatures: {
         useBarCodeDetectorIfSupported: true
+      },
+      videoConstraints: {
+        facingMode: "environment",
+        focusMode: "continuous",
+        exposureMode: "continuous"
       }
     };
 
@@ -187,36 +194,38 @@ const BarcodeScanner = () => {
     setLoading(true);
     setProductData(null);
     try {
-      // 1. Try Food Facts
-      let response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-      let data = response.data;
+      // Parallel lookups for speed
+      const urls = [
+        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+        `https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`,
+        `https://world.openpetfoodfacts.org/api/v0/product/${barcode}.json`
+      ];
+
+      // Use reflect to catch errors individually and continue
+      const results = await Promise.all(urls.map(url => axios.get(url).catch(e => ({ data: { status: 0 } }))));
       
-      // 2. Try Beauty Facts if not found
-      if (data.status !== 1) {
-        response = await axios.get(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
-        data = response.data;
-      }
-
-      // 3. Try Pet Food Facts if still not found
-      if (data.status !== 1) {
-          response = await axios.get(`https://world.openpetfoodfacts.org/api/v0/product/${barcode}.json`);
-          data = response.data;
-      }
-
       let pData = { barcode };
-      if (data.status === 1 && data.product) {
+      // Find first successful results
+      const successResult = results.find(r => r.data.status === 1);
+
+      if (successResult && successResult.data.product) {
+        const prod = successResult.data.product;
         pData = {
           barcode,
-          name: data.product.product_name || '',
-          brand: data.product.brands || '',
-          image: data.product.image_url || ''
+          name: prod.product_name || prod.product_name_en || '',
+          brand: prod.brands || prod.brand_owner || '',
+          image: prod.image_url || prod.image_front_url || ''
         };
+      } else {
+          // If no results, try one more generic search or fallback
+          pData = { barcode };
       }
+
       if (isMounted.current) setProductData(pData);
     } catch (err) {
       console.error(err);
       if (isMounted.current) {
-          setError('Product not found in our database, but you can still add it manually.');
+          setError('Product not found, but you can still record it.');
           setProductData({ barcode });
       }
     } finally {
@@ -273,12 +282,15 @@ const BarcodeScanner = () => {
                     </div>
 
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-64 h-48 border-2 border-primary/50 rounded-2xl relative">
-                            <div className="absolute inset-x-0 h-0.5 bg-primary/80 top-0 animate-[scan_2s_infinite]"></div>
-                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
-                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
-                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
-                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+                        <div className="w-72 h-56 border border-white/20 rounded-[2rem] relative overflow-hidden">
+                            <div className="absolute inset-0 bg-primary/10 animate-pulse"></div>
+                            <div className="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent top-0 animate-[scan_2.5s_infinite]"></div>
+                            
+                            {/* Decorative corners */}
+                            <div className="absolute top-0 left-0 w-8 h-8 border-t-[5px] border-l-[5px] border-primary rounded-tl-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
+                            <div className="absolute top-0 right-0 w-8 h-8 border-t-[5px] border-r-[5px] border-primary rounded-tr-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
+                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[5px] border-l-[5px] border-primary rounded-bl-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
+                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[5px] border-r-[5px] border-primary rounded-br-3xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
                         </div>
                     </div>
                   </div>

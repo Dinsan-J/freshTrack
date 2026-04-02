@@ -11,6 +11,13 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingBatch, setEditingBatch] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+      name: '',
+      brand: '',
+      expiryDate: '',
+      quantity: 1
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -72,6 +79,40 @@ const Dashboard = () => {
     } catch (err) {
         alert('Update failed');
     }
+  };
+
+  const handleEditClick = (batch, product) => {
+      setEditingBatch({ ...batch, productId: product._id });
+      setEditFormData({
+          name: product.name,
+          brand: product.brand || '',
+          expiryDate: format(new Date(batch.expiryDate), 'yyyy-MM-dd'),
+          quantity: batch.quantity
+      });
+  };
+
+  const handleUpdateFullBatch = async (e) => {
+      e.preventDefault();
+      try {
+          // 1. Update Product
+          await axios.put(`${API_URL}/products/${editingBatch.productId}`, {
+              name: editFormData.name,
+              brand: editFormData.brand
+          });
+
+          // 2. Update Batch
+          await axios.put(`${API_URL}/batches/${editingBatch._id}`, {
+              expiryDate: editFormData.expiryDate,
+              quantity: editFormData.quantity
+          });
+
+          // Refresh products
+          await fetchProducts();
+          window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+          setEditingBatch(null);
+      } catch (err) {
+          alert('Update failed');
+      }
   };
 
   const calculateStatus = (batch) => {
@@ -214,10 +255,13 @@ const Dashboard = () => {
                                       >+</button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                   <span className={`text-[10px] uppercase font-bold px-3 py-1.5 rounded-full ring-1 ${status.color} ${status.ring}`}>
                                     {status.label}
                                   </span>
+                                  <button onClick={() => handleEditClick(batch, product)} className="opacity-0 group-hover/batch:opacity-100 p-1.5 text-slate-400 hover:text-primary transition-all">
+                                      <Edit3 className="w-4 h-4" />
+                                  </button>
                                   <button onClick={() => deleteBatch(batch._id, product._id)} className="opacity-0 group-hover/batch:opacity-100 p-1.5 text-slate-300 hover:text-red-500 transition-all">
                                       <Trash2 className="w-4 h-4" />
                                   </button>
@@ -233,6 +277,73 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingBatch && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+              <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-scale-in border border-slate-100 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-black text-slate-800 tracking-tight">Edit Detail</h3>
+                    <button onClick={() => setEditingBatch(null)} className="p-2 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500 transition-all">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleUpdateFullBatch} className="space-y-5">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Product Name</label>
+                        <input 
+                            type="text" 
+                            required 
+                            className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-800"
+                            value={editFormData.name}
+                            onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Brand</label>
+                        <input 
+                            type="text" 
+                            className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-800"
+                            value={editFormData.brand}
+                            onChange={(e) => setEditFormData({...editFormData, brand: e.target.value})}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Expiry Date</label>
+                            <input 
+                                type="date" 
+                                required
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-800 text-sm"
+                                value={editFormData.expiryDate}
+                                onChange={(e) => setEditFormData({...editFormData, expiryDate: e.target.value})}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase text-slate-400 tracking-widest ml-1">Quantity</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                required
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-800 text-center"
+                                value={editFormData.quantity}
+                                onChange={(e) => setEditFormData({...editFormData, quantity: parseInt(e.target.value)})}
+                            />
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        className="w-full bg-slate-900 text-white font-black py-4 rounded-[1.25rem] shadow-xl hover:bg-primary transition-all flex items-center justify-center gap-2 mt-4 group"
+                    >
+                        Save Changes <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    </button>
+                </form>
+              </div>
+          </div>
       )}
     </div>
   );

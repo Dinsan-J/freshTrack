@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { PlusCircle, Loader2, ArrowLeft, ArrowRight, Tag, Calendar, Hash, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Loader2, ArrowLeft, ArrowRight, Tag, Calendar, Hash, Image as ImageIcon, CheckCircle } from 'lucide-react';
 
 const API_URL = import.meta.env.MODE === 'production' 
   ? 'https://freshtrack-api-sg33.onrender.com/api' 
@@ -83,7 +83,8 @@ const AddProduct = () => {
       <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-6 md:p-8 border border-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-indigo-500"></div>
         {success && (
-          <div className="mb-6 p-4 bg-safe/10 border border-safe/20 text-safe rounded-2xl flex items-center justify-center gap-2 animate-slide-up font-bold tracking-wide">
+          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm px-6 py-4 bg-emerald-500 text-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce font-black tracking-wide border border-white/20">
+            <CheckCircle className="w-6 h-6" />
             {success}
           </div>
         )}
